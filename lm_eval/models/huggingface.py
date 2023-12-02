@@ -556,6 +556,7 @@ class AutoCausalLM(HuggingFaceAutoLM):
         inputs: transformers.BatchEncoding,
         max_tokens: int,
         stop: Optional[List[str]] = None,
+        generation_config: Optional[transformers.generation.configuration_utils.GenerationConfig] = None
     ) -> TokenSequence:
         # Ensure that the context does not encroach into the `space`
         # for the generation.
@@ -572,6 +573,7 @@ class AutoCausalLM(HuggingFaceAutoLM):
 
         generations = self.model.generate(
             input_ids=input_ids,
+            **generation_config,
             attention_mask=attention_mask,
             # GPT style models require the `generate` `max_length` arg to include the
             # context length, so we instead set `max_new_tokens` which is the number
