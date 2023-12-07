@@ -106,3 +106,14 @@ class LambadaOpenAI(LambadaBase):
 
     def has_test_docs(self):
         return True
+
+class LambadaStandard_greedy(LambadaStandard):
+    def construct_requests(self, doc, ctx):
+        ll_greedy, is_greedy = rf.loglikelihood_greedy(ctx, self.doc_to_target(doc))
+        return ll_greedy, is_greedy,
+
+class LambadaOpenAI_greedy(LambadaOpenAI):
+    def construct_requests(self, doc, ctx):
+        ll_greedy, is_greedy = rf.loglikelihood_greedy(ctx, self.doc_to_target(doc))
+        return ll_greedy, is_greedy,
+

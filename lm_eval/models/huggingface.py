@@ -547,9 +547,10 @@ class AutoCausalLM(HuggingFaceAutoLM):
         return tokenizer
 
     def _model_call(
-        self, inputs: TokenSequence, labels: Optional[TokenSequence] = None
+        self, inputs: TokenSequence, labels: Optional[TokenSequence] = None, past_key_values: Optional[torch.Tensor] = None
     ) -> TokenSequence:
-        return self.model(inputs)["logits"]
+        output = self.model(inputs, past_key_values=past_key_values)
+        return output['logits'], output['past_key_values']
 
     def _model_generate(
         self,

@@ -127,6 +127,8 @@ TASK_REGISTRY = {
     "lambada_standard": lambada.LambadaStandard,
     "lambada_openai_cloze": lambada_cloze.LambadaOpenAICloze,
     "lambada_standard_cloze": lambada_cloze.LambadaStandardCloze,
+    "lambada_openai_greedy": lambada.LambadaOpenAI_greedy,
+    "lambada_standard_greedy": lambada.LambadaStandard_greedy,
     # multilingual lambada
     **lambada_multilingual.construct_tasks(),
     "wikitext": wikitext.WikiText,

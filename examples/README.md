@@ -18,3 +18,12 @@ python examples/run_flan-t5-xl_lambada.py \
   --device cpu
 ```
 
+# run lambada test with next token on greedy search
+python examples/run_lambada_greedy.py \
+  --model EleutherAI/gpt-j-6b \
+  --tasks lambada_openai_greedy \
+  --batch_size 1 \
+  --output_path ./output \
+  --device cpu
+
+
