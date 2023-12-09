@@ -1,7 +1,12 @@
 # cnn_dailymail GPT-J test, MLPerf v3.1 compliant 
+To use MLPerf GPT-J model
+```
+wget https://cloud.mlcommons.org/index.php/s/QAZ2oM94MkFtbQx/download --output-document checkpoint.zip
+unzip checkpoint.zip
+```
 ```
 python examples/run_cnn_dailymail.py \
-  --model EleutherAI/gpt-j-6b \
+  --model checkpoint \
   --tasks cnn_dailymail \
   --batch_size 1 \
   --output_path ./output \

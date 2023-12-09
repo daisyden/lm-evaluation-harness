@@ -14,6 +14,8 @@ logging.getLogger("openai").setLevel(logging.WARNING)
 
 TokenSequence = Union[List[int], torch.LongTensor, torch.Tensor, BatchEncoding]
 
+MAX_LENGTH=1919
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
@@ -32,6 +34,8 @@ def parse_args():
     return parser.parse_args()
 
 class CNNDaily(models.huggingface.AutoCausalLM):
+    MAX_LENGTH=1919
+
     def init(
         self,
         pretrained: str,
@@ -40,28 +44,34 @@ class CNNDaily(models.huggingface.AutoCausalLM):
         ):
         super().__init__()
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_id, trust_remote_code=True,
-            model_max_length=2048,
+            pretrained, trust_remote_code=True,
+            model_max_length=MAX_LENGTH,
             padding_side="left",
             use_fast=False,
         )
+
         self.tokenizer.pad_token = self.tokenizer.eos_token
 
     def tok_encode(self, string: str):
-        source_encoded = self.tokenizer(string, return_tensors="pt", add_special_tokens=self.add_special_tokens, padding=True, truncation=True, max_length=1919)
+        source_encoded = self.tokenizer(string, return_tensors="pt", truncation=True, max_length=MAX_LENGTH)
         self.attention_mask = source_encoded.attention_mask
+ 
         return source_encoded.input_ids[0].tolist()
 
     def tok_encode_batch(self, strings: List[str]) -> TokenSequence:
         return self.tokenizer(
             strings,
-            add_special_tokens=self.add_special_tokens,
             return_tensors="pt",
-            padding=True,
+            padding="max_length",
+            pad_to_max_length=True,
             truncation=True,
-            max_length=1919
+            max_length=MAX_LENGTH,
         )
 
+    @property
+    def max_length(self) -> int:
+        return MAX_LENGTH
+ 
     def _model_generate(
         self,
         inputs: transformers.BatchEncoding,
@@ -71,13 +81,38 @@ class CNNDaily(models.huggingface.AutoCausalLM):
  
         generation_kwargs = {
                 "early_stopping": True,
-                #"max_new_tokens": 128,
+                "max_new_tokens": 128,
                 "min_new_tokens": 30,
                 "num_beams": 4,
                 "eos_token_id": self.tokenizer.eos_token_id,
-                "pad_token_id": self.tokenizer.eos_token_id,
+                "pad_token_id": self.tokenizer.pad_token_id,
                 }
-        return super()._model_generate(inputs, 128, stop, generation_config=generation_kwargs) #"max_new_tokens": 128
+
+        input_ids = inputs["input_ids"][:, self.max_gen_toks - self.max_length :]
+        attention_mask = inputs["attention_mask"][
+            :, self.max_gen_toks - self.max_length :
+        ]
+        input_ids = input_ids.to(self.device)
+        attention_mask = attention_mask.to(self.device)
+
+        stopping_criteria = models.huggingface.stop_sequences_criteria(
+            self.tokenizer, stop, input_ids.shape[1], input_ids.shape[0]
+        )
+
+        generations = self.model.generate(
+            input_ids=input_ids,
+            **generation_kwargs,
+            attention_mask=attention_mask,
+            stopping_criteria=stopping_criteria,
+            do_sample=False,
+        )
+        outputs = self.tok_decode(generations.tolist())
+        print("generations: {}\n".format(outputs))
+
+        return utils.select_continuation_from_batch_left_padding(
+            generations, max_context_size=input_ids.size(1)
+        )
+
 
 def main():
     args = parse_args()
@@ -96,7 +131,7 @@ def main():
     assert task_names == ['cnn_dailymail']
     task_dict = tasks.get_task_dict(task_names)
 
-    model = CNNDaily(args.model,device=args.device, batch_size=args.batch_size)
+    model = CNNDaily(args.model,device=args.device, batch_size=args.batch_size, max_gen_toks=128)
     results = evaluator.evaluate(
         model,
         task_dict,
