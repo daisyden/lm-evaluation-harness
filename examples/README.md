@@ -5,7 +5,7 @@ wget https://cloud.mlcommons.org/index.php/s/QAZ2oM94MkFtbQx/download --output-d
 unzip checkpoint.zip
 ```
 ```
-python examples/run_cnn_dailymail.py \
+python examples/run_mlperf_cnn_dailymail.py \
   --model checkpoint \
   --tasks cnn_dailymail \
   --batch_size 1 \
